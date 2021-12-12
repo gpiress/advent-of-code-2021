@@ -23,48 +23,6 @@ const constructInitialAdjacency = allReadings => {
     return adjMap;
 };
 
-const findAllPaths = adjacencyMap => {
-    // start from 'start'
-    const startTos = adjacencyMap.get('start');
-
-    let toVisit = startTos.map(cave => `start-${cave}`);
-
-    let pathsFound = 0;
-    while (toVisit.length > 0) {
-        const currentPath = toVisit.pop();
-        const cavesInPath = currentPath.split('-');
-        const currentCave = cavesInPath[cavesInPath.length - 1];
-        //console.log({toVisit});
-        //console.log({currentPath});
-
-        if (currentCave === 'end') {
-            pathsFound++;
-            continue;
-        }
-
-        const neighbours = adjacencyMap.get(currentCave) || [];
-        
-        const neighboursToVisit = neighbours
-            .filter(neighbourCave => neighbourCave !== 'start') // never visit 'start' twice
-            .filter(neighbourCave => {
-                if (neighbourCave == neighbourCave.toLowerCase()) {
-                    // only visit small caves once
-                    if (cavesInPath.indexOf(neighbourCave) > -1) {
-                        //console.log(`Found cave already visited: ${neighbourCave} -- ${currentPath}`);
-                        return false;
-                    }
-                }
-                return true;
-            })
-            .map(neighbourCave => `${currentPath}-${neighbourCave}`);
-
-        // DFS
-        toVisit = [...toVisit, ...neighboursToVisit];
-    }
-
-    return pathsFound;
-};
-
 const hasVisitedSmallCaveTwice = visited => {
     const visitedSmallCaves = visited
         .filter(visitedCave => visitedCave !== 'start') // just to be extra careful
@@ -83,15 +41,12 @@ const hasVisitedSmallCaveTwice = visited => {
     return false;
 };
 
-const findAllPathsSecondPart = adjacencyMap => {
+const findAllPaths = (adjacencyMap, isSecondPart) => {
     let pathsFound = 0;
 
     let toVisit = [{ cave: 'start', visited: []}];
     while (toVisit.length > 0) {
         const { cave, visited } = toVisit.pop();
-
-        //console.log({cave});
-        //console.log({visited});
 
         if (cave === 'end') {
             pathsFound++;
@@ -107,24 +62,22 @@ const findAllPathsSecondPart = adjacencyMap => {
                     return true;
                 }
 
+                if (!isSecondPart && visited.indexOf(neighbourCave) > -1) {
+                    // In first part we can't revisit small caves at all
+                    return false;
+                }
+
                 const allVisited = [...visited, cave];
                 const twiceSmallCave = hasVisitedSmallCaveTwice(allVisited);
 
                 if (twiceSmallCave && visited.indexOf(neighbourCave) > -1) {
                     // Can't revisit more than one small cave
-                    //console.log(`Cannot visit ${neighbourCave} because already got 2 small caves in ${allVisited}`);
                     return false;
                 }
 
                 return true;
             })
             .map(neighbourCave => {
-                /*
-                console.group('Adding cave to visit');
-                console.log(`${visited}, current cave: ${cave}`);
-                console.log(`will visit cave ${neighbourCave}`);
-                console.groupEnd();
-                */
                 return { cave: neighbourCave, visited: [...visited, cave] };
             });
 
@@ -137,7 +90,7 @@ const findAllPathsSecondPart = adjacencyMap => {
 const firstPart = (allReadings) => {
     const adjMap = constructInitialAdjacency(allReadings);
 
-    const pathsFound = findAllPaths(adjMap);
+    const pathsFound = findAllPaths(adjMap, false);
 
     console.log({pathsFound});
 };
@@ -145,7 +98,7 @@ const firstPart = (allReadings) => {
 const secondPart = (allReadings) => {
     const adjMap = constructInitialAdjacency(allReadings);
 
-    const pathsFound = findAllPathsSecondPart(adjMap);
+    const pathsFound = findAllPaths(adjMap, true);
 
     console.log({pathsFound});    
 };
